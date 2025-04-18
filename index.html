@@ -2,25 +2,37 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>8-Bit Skater Runner</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #333; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body { overflow: hidden; background: #333; }
     canvas {
       display: block;
       background: #70c5ce;
-      width: 100%;
+      width: 100vw;
       height: auto;
       image-rendering: pixelated;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="400" height="200"></canvas>
+  <canvas id="gameCanvas"></canvas>
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
+
+    function resizeCanvas() {
+      const w = window.innerWidth;
+      const h = w / 2; // 400:200 ratio
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.scale(dpr, dpr);
+      ctx.imageSmoothingEnabled = false;
+    }
 
     // Sprites laden
     const playerImg = new Image(); playerImg.src = 'images/skater.png';
@@ -100,27 +112,25 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Flamme um den Spieler bei Unverwundbarkeit
+      // Flame um Spieler
       if (invincible) {
         ctx.drawImage(flameImg,
           player.x - 10, player.y - 10,
           player.width + 20, player.height + 20);
       }
 
-      // Spieler mit Sprite
+      // Spieler
       ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-
-      // Hindernisse mit Bild
+      // Hindernisse
       obstacles.forEach(o => ctx.drawImage(blockImg, o.x, o.y, o.width, o.height));
-
-      // Gitarren mit Bild
+      // Gitarren
       guitars.forEach(g => ctx.drawImage(guitarImg, g.x, g.y, g.width, g.height));
 
       // Boden
       ctx.fillStyle = 'green';
       ctx.fillRect(0, 170, canvas.width, 30);
 
-      // Punkteanzeige
+      // Anzeigetext
       ctx.fillStyle = 'white';
       ctx.font = '16px sans-serif';
       ctx.fillText(`Score: ${score}  High: ${highscore}`, 10, 20);
@@ -132,7 +142,11 @@
       requestAnimationFrame(loop);
     }
 
-    playerImg.onload = () => loop();
+    window.addEventListener('load', () => {
+      resizeCanvas();
+      loop();
+    });
+    window.addEventListener('resize', resizeCanvas);
 
     document.addEventListener('keydown', e => {
       if (e.code === 'Space' && player.onGround) {
