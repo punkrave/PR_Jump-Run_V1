@@ -5,33 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>8-Bit Skater Runner</title>
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #333; }
+    html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#333; }
+    #container {
+      width:100vw; height:100vh;
+      display:flex; justify-content:center; align-items:center;
+      overflow:hidden; background:#333;
+    }
     canvas {
-      display: block;
-      position: absolute;
-      top: 0; left: 0;
+      width:400px; height:200px;
       image-rendering: pixelated;
-      background: #70c5ce;
+      transform-origin: center center;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="400" height="200"></canvas>
+  <div id="container">
+    <canvas id="gameCanvas" width="400" height="200"></canvas>
+  </div>
   <script>
     const worldW = 400, worldH = 200;
+    const container = document.getElementById('container');
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    
-    function resizeCanvas() {
+
+    function resize() {
       const vw = window.innerWidth, vh = window.innerHeight;
       const scale = Math.max(vw / worldW, vh / worldH);
-      canvas.style.width = worldW * scale + 'px';
-      canvas.style.height = worldH * scale + 'px';
+      canvas.style.transform = 'scale(' + scale + ')';
       ctx.imageSmoothingEnabled = false;
     }
-    
-    window.addEventListener('load', () => { resizeCanvas(); loop(); });
-    window.addEventListener('resize', resizeCanvas);
+
+    window.addEventListener('load', () => { resize(); loop(); });
+    window.addEventListener('resize', resize);
 
     // Load sprites
     const playerImg = new Image(); playerImg.src = 'images/skater.png';
@@ -39,7 +44,7 @@
     const guitarImg = new Image(); guitarImg.src = 'images/guitar.png';
     const flameImg  = new Image(); flameImg.src  = 'images/flame.png';
 
-    // Game vars
+    // Game variables
     let speed = 2, gravity = 0.5, jumpForce = 10, score = 0;
     let highscore = localStorage.getItem('skaterHigh') || 0;
     let invincible = false, invTime = 0;
@@ -52,44 +57,31 @@
         highscore = score;
         localStorage.setItem('skaterHigh', highscore);
       }
-      speed = 2;
-      score = 0;
-      obstacles.length = 0;
-      guitars.length = 0;
-      invincible = false;
-      invTime = 0;
-      player.y = 150;
-      player.vy = 0;
-      player.onGround = true;
+      speed = 2; score = 0;
+      obstacles.length = 0; guitars.length = 0;
+      invincible = false; invTime = 0;
+      player.y = 150; player.vy = 0; player.onGround = true;
     }
 
     function update() {
       player.vy += gravity;
       player.y += player.vy;
       if (player.y > 150) {
-        player.y = 150;
-        player.vy = 0;
-        player.onGround = true;
+        player.y = 150; player.vy = 0; player.onGround = true;
       }
-
       spawnTimer--;
       if (spawnTimer <= 0) {
         spawnTimer = 100 - Math.min(score, 80);
         obstacles.push({ x: worldW, y: 150, w: 20, h: 20 });
       }
-
       guitarTimer--;
       if (guitarTimer <= 0) {
         guitarTimer = 200;
         guitars.push({ x: worldW, y: Math.random() * 100 + 20, w: 15, h: 15 });
       }
-
       obstacles.forEach((o, i) => {
         o.x -= speed;
-        if (!invincible &&
-            o.x < player.x + player.w &&
-            o.x + o.w > player.x &&
-            player.y + player.h > o.y) {
+        if (!invincible && o.x < player.x + player.w && o.x + o.w > player.x && player.y + player.h > o.y) {
           gameOver();
         }
         if (o.x + o.w < 0) {
@@ -98,20 +90,15 @@
           speed = 2 + score * 0.01;
         }
       });
-
       guitars.forEach((g, i) => {
         g.x -= speed;
-        if (g.x < player.x + player.w &&
-            g.x + g.w > player.x &&
-            g.y < player.y + player.h &&
-            g.y + g.h > player.y) {
-          invincible = true;
-          invTime = 300;
+        if (g.x < player.x + player.w && g.x + g.w > player.x && g.y < player.y + player.h && g.y + g.h > player.y) {
+          invincible = true; invTime = 300; guitars.splice(i, 1);
+        }
+        if (g.x + g.w < 0) {
           guitars.splice(i, 1);
         }
-        if (g.x + g.w < 0) guitars.splice(i, 1);
       });
-
       if (invincible) {
         invTime--;
         if (invTime <= 0) invincible = false;
@@ -120,29 +107,15 @@
 
     function draw() {
       ctx.clearRect(0, 0, worldW, worldH);
-
-      // Flame effect
       if (invincible) {
         ctx.drawImage(flameImg, player.x - 10, player.y - 10, player.w + 20, player.h + 20);
       }
-
-      // Draw player
       ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
-
-      // Draw obstacles
       obstacles.forEach(o => ctx.drawImage(blockImg, o.x, o.y, o.w, o.h));
-
-      // Draw guitars
       guitars.forEach(g => ctx.drawImage(guitarImg, g.x, g.y, g.w, g.h));
-
-      // Draw ground
-      ctx.fillStyle = 'green';
-      ctx.fillRect(0, 170, worldW, 30);
-
-      // Draw score
-      ctx.fillStyle = 'white';
-      ctx.font = '16px sans-serif';
-      ctx.fillText(`Score: ${score}  High: ${highscore}`, 10, 20);
+      ctx.fillStyle = 'green'; ctx.fillRect(0, 170, worldW, 30);
+      ctx.fillStyle = 'white'; ctx.font = '16px sans-serif';
+      ctx.fillText('Score: ' + score + '  High: ' + highscore, 10, 20);
     }
 
     function loop() {
@@ -153,15 +126,13 @@
 
     document.addEventListener('keydown', e => {
       if (e.code === 'Space' && player.onGround) {
-        player.vy = -jumpForce;
-        player.onGround = false;
+        player.vy = -jumpForce; player.onGround = false;
       }
     });
 
-    window.addEventListener('touchstart', () => {
+    canvas.addEventListener('touchstart', () => {
       if (player.onGround) {
-        player.vy = -jumpForce;
-        player.onGround = false;
+        player.vy = -jumpForce; player.onGround = false;
       }
     });
   </script>
