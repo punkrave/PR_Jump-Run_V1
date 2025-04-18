@@ -2,33 +2,53 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>8-Bit Skater Runner</title>
 <style>
-  html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#333; }
-  #container { width:100vw; height:100vh; display:flex; justify-content:center; align-items:center; background:#333; position:relative; }
-  canvas { image-rendering: pixelated; background: #70c5ce; transform-origin: center center; }
-  #scoreboard { position:absolute; top:10px; left:10px; color:white; font-family:sans-serif; font-size:1.5rem; }
+  html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#333; }
+  #container {
+    width:100vw; height:100vh;
+    display:flex; justify-content:center; align-items:center;
+    background:#333; overflow:hidden;
+  }
+  #game-wrapper {
+    width:400px; height:200px;
+    position:relative;
+    transform-origin:center center;
+  }
+  canvas {
+    width:400px; height:200px;
+    image-rendering:pixelated;
+    background:#70c5ce;
+    display:block;
+  }
+  #scoreboard {
+    position:absolute; top:8px; left:8px;
+    color:white; font-family:sans-serif; font-size:14px;
+  }
 </style>
 </head>
 <body>
 <div id="container">
-  <canvas id="gameCanvas" width="400" height="200"></canvas>
-  <div id="scoreboard">Score: 0 | High: 0</div>
+  <div id="game-wrapper">
+    <canvas id="gameCanvas" width="400" height="200"></canvas>
+    <div id="scoreboard">Score: 0 | High: 0</div>
+  </div>
 </div>
 <script>
 const worldW=400, worldH=200;
 const canvas=document.getElementById('gameCanvas');
 const ctx=canvas.getContext('2d');
-const scoreboard = document.getElementById('scoreboard');
-let scale=1;
+const wrapper=document.getElementById('game-wrapper');
+const scoreboard=document.getElementById('scoreboard');
 
 function resize(){
   const vw=window.innerWidth, vh=window.innerHeight;
-  scale=Math.min(vw/worldW, vh/worldH);
-  canvas.style.transform='scale('+scale+')';
+  const scale=Math.max(vw/worldW, vh/worldH);
+  wrapper.style.transform='scale('+scale+')';
   ctx.imageSmoothingEnabled=false;
 }
+
 window.addEventListener('load', ()=>{ resize(); loop(); });
 window.addEventListener('resize', resize);
 
@@ -65,7 +85,7 @@ function update(){
     if(g.x+g.w<0) guitars.splice(i,1);
   });
   if(inv){ invT--; if(invT<=0) inv=false; }
-  scoreboard.textContent = 'Score: ' + score + ' | High: ' + high;
+  scoreboard.textContent='Score: '+score+' | High: '+high;
 }
 
 function draw(){
