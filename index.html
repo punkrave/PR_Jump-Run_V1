@@ -1,90 +1,169 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>8-Bit Skater Runner</title>
-<style>
-  html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#333; }
-  #container { width:100vw; height:100vh; overflow:hidden; position:relative; }
-  canvas {
-    width:400px; height:200px;
-    position:absolute; top:50%; left:50%;
-    transform-origin: center center;
-    image-rendering: pixelated;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>8-Bit Skater Runner</title>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #333; }
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0; left: 0;
+      image-rendering: pixelated;
+      background: #70c5ce;
+    }
+  </style>
 </head>
 <body>
-<div id="container">
   <canvas id="gameCanvas" width="400" height="200"></canvas>
-</div>
-<script>
-const worldW = 400, worldH = 200;
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
-function resize() {
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const scale = Math.max(vw/worldW, vh/worldH);
-  canvas.style.transform = `translate(-50%, -50%) scale(${scale})`;
-  ctx.imageSmoothingEnabled = false;
-}
-
-window.addEventListener('load', () => { resize(); loop(); });
-window.addEventListener('resize', resize);
-
-// Sprites
-const playerImg = new Image(); playerImg.src='images/skater.png';
-const blockImg  = new Image(); blockImg.src='images/block.png';
-const guitarImg = new Image(); guitarImg.src='images/guitar.png';
-const flameImg  = new Image(); flameImg.src='images/flame.png';
-
-let speed=2, gravity=0.5, jumpForce=10, score=0;
-let high=localStorage.getItem('skaterHigh')||0, inv=false, invT=0;
-const player={x:50,y:150,w:20,h:20,vy:0,onGround:true};
-const obstacles=[], guitars=[];
-let spT=0, gtT=0;
-
-function gameOver() {
-  if(score>high){ high=score; localStorage.setItem('skaterHigh',high); }
-  speed=2; score=0; obstacles.length=0; guitars.length=0;
-  inv=false; invT=0; player.y=150; player.vy=0; player.onGround=true;
-}
-
-function update() {
-  player.vy+=gravity; player.y+=player.vy;
-  if(player.y>150){ player.y=150; player.vy=0; player.onGround=true; }
-  spT--; if(spT<=0){ spT=100-Math.min(score,80); obstacles.push({x:worldW,y:150,w:20,h:20}); }
-  gtT--; if(gtT<=0){ gtT=200; guitars.push({x:worldW,y:Math.random()*100+20,w:15,h:15}); }
-  obstacles.forEach((o,i)=>{ o.x-=speed;
-    if(!inv && o.x<player.x+player.w && o.x+o.w>player.x && player.y+player.h>o.y) gameOver();
-    if(o.x+o.w<0){ obstacles.splice(i,1); score++; speed=2+score*0.01; }
-  });
-  guitars.forEach((g,i)=>{ g.x-=speed;
-    if(g.x<player.x+player.w && g.x+g.w>player.x && g.y<player.y+player.h && g.y+g.h>player.y){
-      inv=true; invT=300; guitars.splice(i,1);
+  <script>
+    const worldW = 400, worldH = 200;
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const scale = Math.max(vw / worldW, vh / worldH);
+      canvas.style.width = worldW * scale + 'px';
+      canvas.style.height = worldH * scale + 'px';
+      ctx.imageSmoothingEnabled = false;
     }
-    if(g.x+g.w<0) guitars.splice(i,1);
-  });
-  if(inv){ invT--; if(invT<=0) inv=false; }
-}
+    
+    window.addEventListener('load', () => { resizeCanvas(); loop(); });
+    window.addEventListener('resize', resizeCanvas);
 
-function draw() {
-  ctx.clearRect(0,0,worldW,worldH);
-  if(inv) ctx.drawImage(flameImg,player.x-10,player.y-10,player.w+20,player.h+20);
-  ctx.drawImage(playerImg,player.x,player.y,player.w,player.h);
-  obstacles.forEach(o=>ctx.drawImage(blockImg,o.x,o.y,o.w,o.h));
-  guitars.forEach(g=>ctx.drawImage(guitarImg,g.x,g.y,g.w,g.h));
-  ctx.fillStyle='green'; ctx.fillRect(0,170,worldW,30);
-  ctx.fillStyle='white'; ctx.font='16px sans-serif';
-  ctx.fillText(`Score:${score} High:${high}`,10,20);
-}
+    // Load sprites
+    const playerImg = new Image(); playerImg.src = 'images/skater.png';
+    const blockImg  = new Image(); blockImg.src  = 'images/block.png';
+    const guitarImg = new Image(); guitarImg.src = 'images/guitar.png';
+    const flameImg  = new Image(); flameImg.src  = 'images/flame.png';
 
-function loop(){ update(); draw(); requestAnimationFrame(loop); }
+    // Game vars
+    let speed = 2, gravity = 0.5, jumpForce = 10, score = 0;
+    let highscore = localStorage.getItem('skaterHigh') || 0;
+    let invincible = false, invTime = 0;
+    const player = { x: 50, y: 150, w: 20, h: 20, vy: 0, onGround: true };
+    const obstacles = [], guitars = [];
+    let spawnTimer = 0, guitarTimer = 0;
 
-document.addEventListener('keydown',e=>{ if(e.code==='Space'&&player.onGround){ player.vy=-jumpForce; player.onGround=false; }});
-canvas.addEventListener('touchstart',()=>{ if(player.onGround){ player.vy=-jumpForce; player.onGround=false; }});
-</script>
+    function gameOver() {
+      if (score > highscore) {
+        highscore = score;
+        localStorage.setItem('skaterHigh', highscore);
+      }
+      speed = 2;
+      score = 0;
+      obstacles.length = 0;
+      guitars.length = 0;
+      invincible = false;
+      invTime = 0;
+      player.y = 150;
+      player.vy = 0;
+      player.onGround = true;
+    }
+
+    function update() {
+      player.vy += gravity;
+      player.y += player.vy;
+      if (player.y > 150) {
+        player.y = 150;
+        player.vy = 0;
+        player.onGround = true;
+      }
+
+      spawnTimer--;
+      if (spawnTimer <= 0) {
+        spawnTimer = 100 - Math.min(score, 80);
+        obstacles.push({ x: worldW, y: 150, w: 20, h: 20 });
+      }
+
+      guitarTimer--;
+      if (guitarTimer <= 0) {
+        guitarTimer = 200;
+        guitars.push({ x: worldW, y: Math.random() * 100 + 20, w: 15, h: 15 });
+      }
+
+      obstacles.forEach((o, i) => {
+        o.x -= speed;
+        if (!invincible &&
+            o.x < player.x + player.w &&
+            o.x + o.w > player.x &&
+            player.y + player.h > o.y) {
+          gameOver();
+        }
+        if (o.x + o.w < 0) {
+          obstacles.splice(i, 1);
+          score++;
+          speed = 2 + score * 0.01;
+        }
+      });
+
+      guitars.forEach((g, i) => {
+        g.x -= speed;
+        if (g.x < player.x + player.w &&
+            g.x + g.w > player.x &&
+            g.y < player.y + player.h &&
+            g.y + g.h > player.y) {
+          invincible = true;
+          invTime = 300;
+          guitars.splice(i, 1);
+        }
+        if (g.x + g.w < 0) guitars.splice(i, 1);
+      });
+
+      if (invincible) {
+        invTime--;
+        if (invTime <= 0) invincible = false;
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, worldW, worldH);
+
+      // Flame effect
+      if (invincible) {
+        ctx.drawImage(flameImg, player.x - 10, player.y - 10, player.w + 20, player.h + 20);
+      }
+
+      // Draw player
+      ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
+
+      // Draw obstacles
+      obstacles.forEach(o => ctx.drawImage(blockImg, o.x, o.y, o.w, o.h));
+
+      // Draw guitars
+      guitars.forEach(g => ctx.drawImage(guitarImg, g.x, g.y, g.w, g.h));
+
+      // Draw ground
+      ctx.fillStyle = 'green';
+      ctx.fillRect(0, 170, worldW, 30);
+
+      // Draw score
+      ctx.fillStyle = 'white';
+      ctx.font = '16px sans-serif';
+      ctx.fillText(`Score: ${score}  High: ${highscore}`, 10, 20);
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.code === 'Space' && player.onGround) {
+        player.vy = -jumpForce;
+        player.onGround = false;
+      }
+    });
+
+    window.addEventListener('touchstart', () => {
+      if (player.onGround) {
+        player.vy = -jumpForce;
+        player.onGround = false;
+      }
+    });
+  </script>
 </body>
 </html>
